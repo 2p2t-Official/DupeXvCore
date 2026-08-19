@@ -41,7 +41,7 @@ Staff commands (op by default):
 
 ## Tab list
 
-Custom tab list that replaces [TAB](https://www.spigotmc.org/resources/tab-1-5-1-20-x.57806/) on our server. It shows live TPS, MSPT and the online/max player count in the header/footer, handles name tags through LuckPerms, and can force player collision off for everyone.
+Custom tab list that replaces [TAB](https://www.spigotmc.org/resources/tab-1-5-1-20-x.57806/) on our server. It shows live TPS, online count and ping in the footer by default (MSPT, max players, health, coordinates and such are available as placeholders too), handles name tags through LuckPerms, and can force player collision off for everyone.
 
 If the TAB plugin is still loaded, DupeXvCore will warn about it in the console and you should remove it — they both fight over the same scoreboard.
 
