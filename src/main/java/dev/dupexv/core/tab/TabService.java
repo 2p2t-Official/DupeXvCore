@@ -24,8 +24,8 @@ public final class TabService implements Listener {
     private static final MiniMessage MINI = MiniMessage.miniMessage();
 
     private final DupeXvCore plugin;
+    // Target uuid -> team id currently in use for that target on every viewer's board.
     private final ConcurrentHashMap<UUID, String> teamIds = new ConcurrentHashMap<>();
-    private final Object boardLock = new Object();
 
     private volatile boolean enabled = true;
     private volatile boolean nametags = true;
@@ -34,8 +34,8 @@ public final class TabService implements Listener {
     private volatile String onlineText = "0";
     private volatile String maxText = "0";
     private volatile String msptText = "0.00";
-    private Scoreboard board;
     private ScheduledTask task;
+    private int pulseCount;
 
     public TabService(DupeXvCore plugin) {
         this.plugin = plugin;
@@ -52,18 +52,16 @@ public final class TabService implements Listener {
         if (Bukkit.getPluginManager().isPluginEnabled("TAB")) {
             plugin.getLogger().warning("TAB is still loaded. Remove it so DupeXvCore can control the tab list.");
         }
-        if (Bukkit.getScoreboardManager() != null) {
-            board = Bukkit.getScoreboardManager().getNewScoreboard();
-        }
         long period = Math.max(1L, plugin.getConfig().getLong("tab.refresh", 20));
         task = Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, scheduled -> pulse(), 1L, period);
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : List.copyOf(Bukkit.getOnlinePlayers())) {
             player.getScheduler().run(plugin, scheduled -> {
                 if (player.isOnline()) {
                     apply(player);
                 }
             }, null);
         }
+        syncTeamsForAll();
     }
 
     public void shutdown() {
@@ -72,14 +70,13 @@ public final class TabService implements Listener {
             task.cancel();
             task = null;
         }
+        teamIds.clear();
         for (Player player : List.copyOf(Bukkit.getOnlinePlayers())) {
             try {
-                clear(player);
+                player.getScheduler().run(plugin, scheduled -> clear(player), null);
             } catch (Exception ignored) {
             }
         }
-        teamIds.clear();
-        board = null;
     }
 
     @EventHandler
@@ -93,11 +90,13 @@ public final class TabService implements Listener {
                 apply(player);
             }
         }, null, 1L);
+        // New player needs every existing team; everyone else needs this player's team.
+        syncTeamsForAll();
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        drop(event.getPlayer());
+        removeTargetFromAll(event.getPlayer());
     }
 
     @EventHandler
@@ -105,7 +104,12 @@ public final class TabService implements Listener {
         if (!enabled) {
             return;
         }
-        apply(event.getPlayer());
+        Player player = event.getPlayer();
+        player.getScheduler().run(plugin, scheduled -> {
+            if (player.isOnline()) {
+                apply(player);
+            }
+        }, null);
     }
 
     private void pulse() {
@@ -117,10 +121,58 @@ public final class TabService implements Listener {
         msptText = String.format(Locale.US, "%.2f", Bukkit.getAverageTickTime());
         onlineText = Integer.toString(Bukkit.getOnlinePlayers().size());
         maxText = Integer.toString(Bukkit.getMaxPlayers());
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        List<Player> online = List.copyOf(Bukkit.getOnlinePlayers());
+        for (Player player : online) {
             player.getScheduler().run(plugin, scheduled -> {
                 if (player.isOnline()) {
                     apply(player);
+                }
+            }, null);
+        }
+        // Refresh name tag teams every so often so prefix changes from LuckPerms show up.
+        if (++pulseCount % 5 == 0) {
+            syncTeamsForAll();
+        }
+    }
+
+    private void syncTeamsForAll() {
+        if (!enabled) {
+            return;
+        }
+        for (Player viewer : List.copyOf(Bukkit.getOnlinePlayers())) {
+            if (!viewer.isOnline()) {
+                continue;
+            }
+            viewer.getScheduler().run(plugin, scheduled -> {
+                if (!viewer.isOnline()) {
+                    return;
+                }
+                for (Player target : List.copyOf(Bukkit.getOnlinePlayers())) {
+                    if (target.isOnline()) {
+                        syncTeam(viewer, target);
+                    }
+                }
+            }, null);
+        }
+    }
+
+    private void removeTargetFromAll(Player target) {
+        String id = teamIds.remove(target.getUniqueId());
+        if (id == null) {
+            return;
+        }
+        for (Player viewer : List.copyOf(Bukkit.getOnlinePlayers())) {
+            if (viewer.getUniqueId().equals(target.getUniqueId()) || !viewer.isOnline()) {
+                continue;
+            }
+            viewer.getScheduler().run(plugin, scheduled -> {
+                if (!viewer.isOnline()) {
+                    return;
+                }
+                Scoreboard board = viewer.getScoreboard();
+                Team team = board.getTeam(id);
+                if (team != null) {
+                    team.unregister();
                 }
             }, null);
         }
@@ -137,85 +189,60 @@ public final class TabService implements Listener {
         }
         player.playerListName(parse(replace(nameFormat, player)));
         player.setPlayerListOrder(1000 - rank(player));
-        syncTeam(player);
     }
 
     private void clear(Player player) {
         if (!player.isOnline()) {
-            drop(player);
             return;
         }
         player.sendPlayerListHeaderAndFooter(Component.empty(), Component.empty());
         player.playerListName(null);
         player.setPlayerListOrder(0);
-        drop(player);
-        if (Bukkit.getScoreboardManager() != null) {
-            player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
-        }
     }
 
-    private void drop(Player player) {
-        String id = teamIds.remove(player.getUniqueId());
-        Scoreboard current = board;
-        if (id == null || current == null) {
+    private void syncTeam(Player viewer, Player target) {
+        if (!viewer.isOnline() || !target.isOnline()) {
             return;
         }
-        synchronized (boardLock) {
-            Team team = current.getTeam(id);
-            if (team != null) {
-                team.unregister();
+        Scoreboard board = viewer.getScoreboard();
+        int rank = rank(target);
+        String id = teamName(target.getUniqueId(), rank);
+        String previous = teamIds.get(target.getUniqueId());
+        if (previous != null && !previous.equals(id)) {
+            Team old = board.getTeam(previous);
+            if (old != null) {
+                old.unregister();
             }
         }
-    }
-
-    private void syncTeam(Player player) {
-        Scoreboard current = board;
-        if (current == null) {
-            return;
+        Team team = board.getTeam(id);
+        if (team == null) {
+            team = board.registerNewTeam(id);
         }
-        int rank = rank(player);
-        String id = teamName(player.getUniqueId(), rank);
-        String previous = teamIds.put(player.getUniqueId(), id);
-        synchronized (boardLock) {
-            if (previous != null && !previous.equals(id)) {
-                Team old = current.getTeam(previous);
-                if (old != null) {
-                    old.unregister();
-                }
+        team.setCanSeeFriendlyInvisibles(false);
+        team.setOption(Team.Option.COLLISION_RULE, collision ? Team.OptionStatus.ALWAYS : Team.OptionStatus.NEVER);
+        team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+        if (nametags) {
+            String prefix = plugin.lang().raw("tab.nametag-prefix");
+            String suffix = plugin.lang().raw("tab.nametag-suffix");
+            if (prefix == null || prefix.equals("tab.nametag-prefix")) {
+                prefix = "%prefix%";
             }
-            Team team = current.getTeam(id);
-            if (team == null) {
-                team = current.registerNewTeam(id);
-                team.setCanSeeFriendlyInvisibles(false);
-                team.setOption(Team.Option.COLLISION_RULE, collision ? Team.OptionStatus.ALWAYS : Team.OptionStatus.NEVER);
-                team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+            if (suffix == null || suffix.equals("tab.nametag-suffix")) {
+                suffix = "%suffix%";
             }
-            if (nametags) {
-                String prefix = plugin.lang().raw("tab.nametag-prefix");
-                String suffix = plugin.lang().raw("tab.nametag-suffix");
-                if (prefix == null || prefix.equals("tab.nametag-prefix")) {
-                    prefix = "%prefix%";
-                }
-                if (suffix == null || suffix.equals("tab.nametag-suffix")) {
-                    suffix = "%suffix%";
-                }
-                team.prefix(parse(replace(prefix, player)));
-                team.suffix(parse(replace(suffix, player)));
-            } else {
-                team.prefix(Component.empty());
-                team.suffix(Component.empty());
-            }
-            String entry = player.getName();
-            if (!team.hasEntry(entry)) {
-                for (String other : List.copyOf(team.getEntries())) {
-                    team.removeEntry(other);
-                }
-                team.addEntry(entry);
-            }
+            team.prefix(parse(replace(prefix, target)));
+            team.suffix(parse(replace(suffix, target)));
+        } else {
+            team.prefix(Component.empty());
+            team.suffix(Component.empty());
         }
-        if (player.getScoreboard() != current) {
-            player.setScoreboard(current);
+        if (!team.hasEntry(target.getName())) {
+            for (String other : List.copyOf(team.getEntries())) {
+                team.removeEntry(other);
+            }
+            team.addEntry(target.getName());
         }
+        teamIds.put(target.getUniqueId(), id);
     }
 
     private Component join(String path, Player player) {
