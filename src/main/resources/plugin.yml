@@ -31,6 +31,16 @@ commands:
   spawn:
     description: Teleport to spawn.
     usage: /<command>
+  home:
+    description: Open homes or teleport to one.
+    aliases: [homes]
+    usage: /<command> [home]
+  sethome:
+    description: Set a home.
+    usage: /<command> <name>
+  delhome:
+    description: Delete a home.
+    usage: /<command> <name>
 
 permissions:
   dupexvcore.tpa:
@@ -39,3 +49,33 @@ permissions:
   dupexvcore.spawn:
     description: Use /spawn.
     default: true
+  dupexvcore.home:
+    description: Use home commands.
+    default: true
+  dupexvcore.home.max.2:
+    description: Allow 2 homes.
+    default: true
+  dupexvcore.home.max.3:
+    description: Allow 3 homes.
+    default: false
+  dupexvcore.home.max.4:
+    description: Allow 4 homes.
+    default: false
+  dupexvcore.home.max.5:
+    description: Allow 5 homes.
+    default: false
+  dupexvcore.home.max.6:
+    description: Allow 6 homes.
+    default: false
+  dupexvcore.home.max.7:
+    description: Allow 7 homes.
+    default: false
+  dupexvcore.home.max.8:
+    description: Allow 8 homes.
+    default: false
+  dupexvcore.home.max.9:
+    description: Allow 9 homes.
+    default: false
+  dupexvcore.home.max.10:
+    description: Allow 10 homes.
+    default: false

@@ -18,8 +18,8 @@ public final class Lang {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
     private final DupeXvCore plugin;
-    private FileConfiguration lang;
-    private FileConfiguration bundled;
+    private YamlConfiguration lang;
+    private YamlConfiguration bundled;
 
     public Lang(DupeXvCore plugin) {
         this.plugin = plugin;
@@ -40,12 +40,50 @@ public final class Lang {
         if (!file.exists() && !"en".equalsIgnoreCase(name)) {
             file = new File(dir, "en.yml");
         }
-        lang = YamlConfiguration.loadConfiguration(file);
         bundled = new YamlConfiguration();
         InputStream in = plugin.getResource("lang/en.yml");
         if (in != null) {
             bundled = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
         }
+        lang = loadYaml(file);
+        if (fillMissing(lang, bundled)) {
+            try {
+                lang.save(file);
+            } catch (Exception e) {
+                plugin.getLogger().warning(String.valueOf(e.getMessage()));
+            }
+        }
+    }
+
+    private YamlConfiguration loadYaml(File file) {
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.options().parseComments(true);
+        yaml.options().width(10000);
+        if (!file.exists()) {
+            return yaml;
+        }
+        try {
+            yaml.load(file);
+        } catch (Exception e) {
+            plugin.getLogger().warning(String.valueOf(e.getMessage()));
+            return YamlConfiguration.loadConfiguration(file);
+        }
+        return yaml;
+    }
+
+    private boolean fillMissing(FileConfiguration dest, FileConfiguration src) {
+        if (dest == null || src == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (String key : src.getKeys(true)) {
+            if (src.isConfigurationSection(key) || dest.isSet(key)) {
+                continue;
+            }
+            dest.set(key, src.get(key));
+            changed = true;
+        }
+        return changed;
     }
 
     public String raw(String path) {
@@ -95,6 +133,21 @@ public final class Lang {
         player.getScheduler().run(plugin, task -> {
             if (player.isOnline()) {
                 send(player, path, pairs);
+            }
+        }, null);
+    }
+
+    public void actionBar(Player player, String path, Object... pairs) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (Bukkit.isOwnedByCurrentRegion(player)) {
+            player.sendActionBar(component(path, pairs));
+            return;
+        }
+        player.getScheduler().run(plugin, task -> {
+            if (player.isOnline()) {
+                player.sendActionBar(component(path, pairs));
             }
         }, null);
     }

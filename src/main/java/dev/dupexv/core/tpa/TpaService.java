@@ -273,19 +273,24 @@ public final class TpaService {
     }
 
     private void startWarmup(Player mover, Player dest, UUID requester) {
+        int warmupTime = plugin.delays().warmup(mover, "tpa", warmupSeconds);
+        Player requesterPlayer = Bukkit.getPlayer(requester);
+        int cooldownTime = requesterPlayer != null
+                ? plugin.delays().cooldown(requesterPlayer, "tpa", cooldownSeconds)
+                : cooldownSeconds;
         cancelWarmup(mover, null);
-        if (warmupSeconds <= 0) {
-            finish(new Warmup(mover.getUniqueId(), dest.getUniqueId(), requester));
+        if (warmupTime <= 0) {
+            finish(new Warmup(mover.getUniqueId(), dest.getUniqueId(), requester, cooldownTime));
             return;
         }
-        Warmup warmup = new Warmup(mover.getUniqueId(), dest.getUniqueId(), requester);
+        Warmup warmup = new Warmup(mover.getUniqueId(), dest.getUniqueId(), requester, cooldownTime);
         warmups.put(mover.getUniqueId(), warmup);
-        tell(mover, "tpa.warmup", "seconds", warmupSeconds);
+        tell(mover, "tpa.warmup", "seconds", warmupTime);
         warmup.task = mover.getScheduler().runDelayed(plugin, task -> {
             if (warmups.remove(mover.getUniqueId(), warmup)) {
                 finish(warmup);
             }
-        }, () -> warmups.remove(mover.getUniqueId(), warmup), warmupSeconds * 20L);
+        }, () -> warmups.remove(mover.getUniqueId(), warmup), warmupTime * 20L);
     }
 
     private void finish(Warmup warmup) {
@@ -308,7 +313,7 @@ public final class TpaService {
             Location to = dest.getLocation().clone();
             mover.teleportAsync(to, PlayerTeleportEvent.TeleportCause.COMMAND).thenAccept(ok -> {
                 if (Boolean.TRUE.equals(ok)) {
-                    markCooldown(warmup.requester);
+                    markCooldown(warmup.requester, warmup.cooldownSeconds);
                     tell(mover, "tpa.done");
                 } else {
                     tell(mover, "tpa.failed");
@@ -379,8 +384,7 @@ public final class TpaService {
         return true;
     }
 
-    private void markCooldown(UUID id) {
-        int seconds = cooldownSeconds;
+    private void markCooldown(UUID id, int seconds) {
         if (seconds <= 0) {
             return;
         }
@@ -447,12 +451,14 @@ public final class TpaService {
         private final UUID mover;
         private final UUID dest;
         private final UUID requester;
+        private final int cooldownSeconds;
         private volatile ScheduledTask task;
 
-        private Warmup(UUID mover, UUID dest, UUID requester) {
+        private Warmup(UUID mover, UUID dest, UUID requester, int cooldownSeconds) {
             this.mover = mover;
             this.dest = dest;
             this.requester = requester;
+            this.cooldownSeconds = cooldownSeconds;
         }
     }
 }

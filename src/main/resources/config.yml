@@ -8,3 +8,9 @@ tpa:
 spawn:
   radius: 250
   world: world
+  warmup: 30
+  cooldown: 30
+
+home:
+  warmup: 10
+  cooldown: 60

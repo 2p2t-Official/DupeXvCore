@@ -1,21 +1,25 @@
 # DupeXvCore
 
-Folia 26.2 core plugin for [DupeXv](https://dupexv.org).
+Folia 26.2 plugin for [DupeXv](https://dupexv.org).
 
-Put `DupeXvCore.jar` in `plugins` and restart the server.
+Drop `DupeXvCore.jar` in `plugins` and restart.
 
 ## Commands
 
-- `/tpa <player>` — `/tpask`, `/call`
-- `/tpa-here <player>` — `/tpahere`, `/tphere`, `/tpah`
-- `/tpa-cancel [player]` — `/tpacancel`, `/tpcancel`, `/tpac`
-- `/tpa-accept [player]` — `/tpaccept`, `/tpyes`, `/tpayes`
-- `/tpa-deny [player]` — `/tpadeny`, `/tpdeny`, `/tpno`, `/tpano`
-- `/spawn`
+`/tpa <player>` (`/tpask`, `/call`)
+`/tpa-here <player>` (`/tpahere`, `/tphere`, `/tpah`)
+`/tpa-cancel [player]` (`/tpacancel`, `/tpcancel`, `/tpac`)
+`/tpa-accept [player]` (`/tpaccept`, `/tpyes`, `/tpayes`)
+`/tpa-deny [player]` (`/tpadeny`, `/tpdeny`, `/tpno`, `/tpano`)
+`/spawn`
+`/home [name]` (`/homes`)
+`/sethome <name>`
+`/delhome <name>`
 
-Both `dupexvcore.tpa` and `dupexvcore.spawn` are given to everyone by default.
+`dupexvcore.tpa`, `dupexvcore.spawn`, and `dupexvcore.home` are given to everyone.
+`dupexvcore.home.max.2` is the default cap. Higher caps are `dupexvcore.home.max.3` through `.max.10`.
 
-`/spawn` dumps you on a safe block within `spawn.radius` of `0,0`. `/tpa` has a warmup and a cooldown (5 seconds each unless you change them). Moving during the warmup cancels the teleport.
+Warmup and cooldown come from config unless the player has a numbered perm, e.g. `dupexvcore.home.warmup.5` or `dupexvcore.tpa.cooldown.0`.
 
 ## Config
 
@@ -30,9 +34,15 @@ tpa:
 spawn:
   radius: 250
   world: world
+  warmup: 30
+  cooldown: 30
+
+home:
+  warmup: 10
+  cooldown: 60
 ```
 
-Chat text lives in `lang/en.yml`. Copy it to something like `lang/es.yml` and set `language: es` if you want another file.
+Messages are in `lang/en.yml`. On startup, missing keys are added. Keys you already changed are not overwritten.
 
 ## Build
 
@@ -40,4 +50,6 @@ Chat text lives in `lang/en.yml`. Copy it to something like `lang/es.yml` and se
 mvn package
 ```
 
-Jar ends up at `target/DupeXvCore.jar`.
+Output: `target/DupeXvCore.jar`
+
+Homes from the old Skript `variables.csv` can be imported with `scripts/import-homes.py`.

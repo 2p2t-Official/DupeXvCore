@@ -1,6 +1,7 @@
 package dev.dupexv.core.spawn;
 
 import dev.dupexv.core.DupeXvCore;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
@@ -20,9 +21,13 @@ public final class SpawnService {
 
     private final DupeXvCore plugin;
     private final ConcurrentHashMap<UUID, Boolean> pending = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Warmup> warmups = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Long> cooldowns = new ConcurrentHashMap<>();
 
     private volatile int radius = 250;
     private volatile String worldName = "world";
+    private volatile int warmupSeconds = 30;
+    private volatile int cooldownSeconds = 30;
 
     public SpawnService(DupeXvCore plugin) {
         this.plugin = plugin;
@@ -32,20 +37,88 @@ public final class SpawnService {
         radius = Math.max(0, plugin.getConfig().getInt("spawn.radius", 250));
         String name = plugin.getConfig().getString("spawn.world", "world");
         worldName = name == null || name.isBlank() ? "world" : name.trim();
+        warmupSeconds = Math.max(0, plugin.getConfig().getInt("spawn.warmup", 30));
+        cooldownSeconds = Math.max(0, plugin.getConfig().getInt("spawn.cooldown", 30));
     }
 
     public void shutdown() {
+        for (Warmup warmup : warmups.values()) {
+            if (warmup.task != null) {
+                warmup.task.cancel();
+            }
+        }
+        warmups.clear();
         pending.clear();
     }
 
     public void spawn(Player player) {
-        if (pending.putIfAbsent(player.getUniqueId(), Boolean.TRUE) != null) {
+        UUID id = player.getUniqueId();
+        if (warmups.containsKey(id) || pending.containsKey(id)) {
+            plugin.lang().tell(player, "spawn.wait");
             return;
         }
-        tryFind(player, 0);
+        int cooldown = plugin.delays().cooldown(player, "spawn", cooldownSeconds);
+        long left = cooldownLeft(id);
+        if (left > 0) {
+            plugin.lang().tell(player, "spawn.cooldown", "seconds", left);
+            return;
+        }
+        int warmup = plugin.delays().warmup(player, "spawn", warmupSeconds);
+        if (warmup <= 0) {
+            pending.put(id, Boolean.TRUE);
+            tryFind(player, 0, cooldown);
+            return;
+        }
+        Warmup w = new Warmup(player.getLocation().clone(), warmup, cooldown);
+        warmups.put(id, w);
+        w.task = player.getScheduler().runAtFixedRate(plugin, task -> tick(player, w), () -> warmups.remove(id, w), 1L, 20L);
     }
 
-    private void tryFind(Player player, int attempt) {
+    public boolean cancelWarmup(Player player, String path, boolean applyCooldown) {
+        Warmup w = warmups.remove(player.getUniqueId());
+        if (w == null) {
+            return false;
+        }
+        if (w.task != null) {
+            w.task.cancel();
+        }
+        if (applyCooldown && w.cooldown > 0) {
+            cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + w.cooldown * 1000L);
+        }
+        if (path != null) {
+            plugin.lang().actionBar(player, path);
+        }
+        return true;
+    }
+
+    public void onLeave(Player player) {
+        cancelWarmup(player, null, false);
+        pending.remove(player.getUniqueId());
+    }
+
+    private void tick(Player player, Warmup w) {
+        if (!player.isOnline()) {
+            cancelWarmup(player, null, false);
+            return;
+        }
+        if (player.getLocation().distanceSquared(w.start) > 0.0001) {
+            cancelWarmup(player, "spawn.moved", true);
+            return;
+        }
+        if (w.left <= 0) {
+            warmups.remove(player.getUniqueId(), w);
+            if (w.task != null) {
+                w.task.cancel();
+            }
+            pending.put(player.getUniqueId(), Boolean.TRUE);
+            tryFind(player, 0, w.cooldown);
+            return;
+        }
+        plugin.lang().actionBar(player, "spawn.countdown", "seconds", w.left);
+        w.left--;
+    }
+
+    private void tryFind(Player player, int attempt, int cooldown) {
         if (!player.isOnline()) {
             pending.remove(player.getUniqueId());
             return;
@@ -70,18 +143,33 @@ public final class SpawnService {
             }
             Location found = scan(world, xz[0], xz[1]);
             if (found == null) {
-                tryFind(player, attempt + 1);
+                tryFind(player, attempt + 1, cooldown);
                 return;
             }
             pending.remove(player.getUniqueId());
             player.teleportAsync(found, PlayerTeleportEvent.TeleportCause.COMMAND).thenAccept(ok -> {
                 if (Boolean.TRUE.equals(ok)) {
-                    plugin.lang().tell(player, "spawn.done");
+                    if (cooldown > 0) {
+                        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + cooldown * 1000L);
+                    }
                 } else {
                     plugin.lang().tell(player, "spawn.failed");
                 }
             });
         });
+    }
+
+    private long cooldownLeft(UUID id) {
+        Long until = cooldowns.get(id);
+        if (until == null) {
+            return 0L;
+        }
+        long left = until - System.currentTimeMillis();
+        if (left <= 0L) {
+            cooldowns.remove(id, until);
+            return 0L;
+        }
+        return (left + 999L) / 1000L;
     }
 
     private int[] randomXZ() {
@@ -146,5 +234,18 @@ public final class SpawnService {
             }
         }
         return Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
+    }
+
+    private static final class Warmup {
+        private final Location start;
+        private int left;
+        private final int cooldown;
+        private volatile ScheduledTask task;
+
+        private Warmup(Location start, int left, int cooldown) {
+            this.start = start;
+            this.left = left;
+            this.cooldown = cooldown;
+        }
     }
 }
