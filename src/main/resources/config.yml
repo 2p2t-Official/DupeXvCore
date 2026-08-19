@@ -1,0 +1,10 @@
+language: en
+
+tpa:
+  warmup: 5
+  cooldown: 5
+  timeout: 60
+
+spawn:
+  radius: 250
+  world: world

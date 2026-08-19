@@ -1,0 +1,41 @@
+name: DupeXvCore
+main: dev.dupexv.core.DupeXvCore
+version: ${project.version}
+api-version: ${plugin.api.version}
+folia-supported: true
+authors: [DupeXv]
+website: https://dupexv.org
+description: Core plugin for DupeXv.
+
+commands:
+  tpa:
+    description: Request to teleport to a player.
+    aliases: [tpask, call]
+    usage: /<command> <player>
+  tpa-here:
+    description: Request a player to teleport to you.
+    aliases: [tpahere, tphere, tpah]
+    usage: /<command> <player>
+  tpa-cancel:
+    description: Cancel a teleport request you sent.
+    aliases: [tpacancel, tpcancel, tpac]
+    usage: /<command> [player]
+  tpa-accept:
+    description: Accept a teleport request.
+    aliases: [tpaccept, tpyes, tpayes]
+    usage: /<command> [player]
+  tpa-deny:
+    description: Deny a teleport request.
+    aliases: [tpadeny, tpdeny, tpno, tpano]
+    usage: /<command> [player]
+  spawn:
+    description: Teleport to spawn.
+    usage: /<command>
+
+permissions:
+  dupexvcore.tpa:
+    description: Use the tpa commands.
+    default: true
+  dupexvcore.spawn:
+    description: Use /spawn.
+    default: true
