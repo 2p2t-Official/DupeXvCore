@@ -2,6 +2,7 @@ prefix: ""
 
 player-only: "&cPlayers only."
 no-permission: "&cNo permission."
+offline-player: "&c{player} isn't online."
 
 tpa:
   usage: "&c/tpa <player>"
@@ -81,3 +82,53 @@ home:
   rename-long: "&cHome names can only be 32 characters long."
   rename-taken: "&cYou already have a home with that name."
   renamed: "&aHome renamed to &f{name}&a!"
+
+tab:
+  header:
+    - ""
+    - "<white>Dupe<b><#A8FFB3>X<#6CCFFF>V</b>"
+    - "<gray>Anarchy Dupe"
+    - "<gray>Est. <white>2026"
+    - ""
+  footer:
+    - ""
+    - "  <#9A9A9A>TPS <white>%tps% <#555555>| <#9A9A9A>Online <white>%online% <#555555>| <#9A9A9A>Ping <white>%ping%  "
+    - ""
+    - "  <#6CCFFF>➜ <white>/store  "
+    - "  <#A8FFB3>➜ <white>/discord  "
+    - ""
+  name: "%prefix%%player%%suffix%"
+  nametag-prefix: "%prefix%"
+  nametag-suffix: "%suffix%"
+  sort:
+    - owner
+    - admin
+    - mod
+    - helper
+    - builder
+    - vip
+    - default
+
+invsee:
+  usage: "&c/invsee <player>"
+  title: "&8{player}"
+  left: "&c{player} left."
+
+endersee:
+  usage: "&c/endersee <player>"
+  title: "&8Ender Chest: {player}"
+
+invclear:
+  usage: "&c/invclear <player>"
+  done: "&7Cleared &f{player}&7's inventory."
+
+enderclear:
+  usage: "&c/enderclear <player>"
+  done: "&7Cleared &f{player}&7's ender chest."
+
+link:
+  usage: "&c/link"
+  wait: "&7Linking your Minecraft account..."
+
+chat-reports:
+  kick: "&cChat failed. Rejoin if you still can't talk."

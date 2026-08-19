@@ -14,3 +14,28 @@ spawn:
 home:
   warmup: 10
   cooldown: 60
+
+tab:
+  enabled: true
+  refresh: 20
+  nametags: true
+  collision: true
+
+regions:
+  enabled: true
+  api-url: https://dupexv.org
+  shared-secret: ""
+  path: /api/mc/regions
+  interval-seconds: 5
+  sample-container-diagnostics: false
+  skip-container-diag-mspt: 40.0
+
+website:
+  api-base-url: https://dupexv.org
+  minecraft-link-api-key: ""
+  timeout-seconds: 8
+
+chat-reports:
+  enabled: true
+  hide-popup: true
+  prevent-kicks: true

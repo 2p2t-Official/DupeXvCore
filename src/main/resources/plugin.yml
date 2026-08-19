@@ -3,6 +3,7 @@ main: dev.dupexv.core.DupeXvCore
 version: ${project.version}
 api-version: ${plugin.api.version}
 folia-supported: true
+softdepend: [LuckPerms, packetevents]
 authors: [DupeXv]
 website: https://dupexv.org
 description: Core plugin for DupeXv.
@@ -41,6 +42,25 @@ commands:
   delhome:
     description: Delete a home.
     usage: /<command> <name>
+  invsee:
+    description: View a player's inventory.
+    aliases: [openinv, ise]
+    usage: /<command> <player>
+  endersee:
+    description: View a player's ender chest.
+    aliases: [enderchest, echest]
+    usage: /<command> <player>
+  invclear:
+    description: Clear a player's inventory.
+    aliases: [clearinv]
+    usage: /<command> <player>
+  enderclear:
+    description: Clear a player's ender chest.
+    aliases: [clearender]
+    usage: /<command> <player>
+  link:
+    description: Link your Minecraft account to dupexv.org.
+    usage: /<command>
 
 permissions:
   dupexvcore.tpa:
@@ -79,3 +99,18 @@ permissions:
   dupexvcore.home.max.10:
     description: Allow 10 homes.
     default: false
+  dupexvcore.invsee:
+    description: Use /invsee.
+    default: op
+  dupexvcore.endersee:
+    description: Use /endersee.
+    default: op
+  dupexvcore.invclear:
+    description: Use /invclear.
+    default: op
+  dupexvcore.enderclear:
+    description: Use /enderclear.
+    default: op
+  dupexvcore.link:
+    description: Use /link.
+    default: true
