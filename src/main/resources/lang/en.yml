@@ -132,3 +132,40 @@ link:
 
 chat-reports:
   kick: "&cChat failed. Rejoin if you still can't talk."
+
+msg:
+  usage: "&c/msg <player> <message>"
+  reply-usage: "&c/r <message>"
+  to: "&7[&a&l->&r &7{player}] &f"
+  from: "&7[&c&l<-&r &7{player}] &f"
+  offline: "&c{player} isn't online."
+  self: "&cYou can't message yourself."
+  ignoring: "&cYou are ignoring {player}."
+  blocked: "&cThat player is ignoring you."
+  no-reply: "&cYou have nobody to reply to."
+  reply-offline: "&cThat player is no longer online."
+  muted: "&cYou are muted for {seconds}s."
+  disabled: "&cPrivate messaging is disabled."
+
+ignore:
+  usage: "&c/ignore <add|remove|list> [player]"
+  add-usage: "&c/ignore add <player>"
+  remove-usage: "&c/ignore remove <player>"
+  added: "&aNow ignoring &f{player}&a."
+  removed: "&aNo longer ignoring &f{player}&a."
+  not-ignoring: "&cYou are not ignoring {player}."
+  already: "&cYou are already ignoring {player}."
+  list-empty: "&7Your ignore list is empty."
+  list: "&7Ignoring: &f{players}"
+  self: "&cYou can't ignore yourself."
+  player-offline: "&c{player} isn't online."
+
+chat:
+  muted: "&cYou are muted for {seconds}s."
+  spam: "&cSlow down! Stop spamming."
+  repeats: "&cStop repeating yourself."
+  caps: "&cStop typing in caps."
+  blocked: "&cThat message was blocked."
+
+command-whitelist:
+  not-allowed: "&cYou can't use {command}."

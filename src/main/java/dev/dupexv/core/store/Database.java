@@ -55,6 +55,13 @@ public final class Database {
                           PRIMARY KEY (uuid, name)
                         )
                         """);
+                st.execute("""
+                        CREATE TABLE IF NOT EXISTS ignores (
+                          uuid TEXT NOT NULL,
+                          ignored TEXT NOT NULL,
+                          PRIMARY KEY (uuid, ignored)
+                        )
+                        """);
             }
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -192,5 +199,61 @@ public final class Database {
             plugin.getLogger().warning(String.valueOf(e.getMessage()));
             return false;
         }
+    }
+
+    public synchronized boolean isIgnoring(UUID who, UUID whom) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT 1 FROM ignores WHERE uuid=? AND ignored=?")) {
+            ps.setString(1, who.toString());
+            ps.setString(2, whom.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning(String.valueOf(e.getMessage()));
+            return false;
+        }
+    }
+
+    public synchronized void addIgnore(UUID who, UUID whom) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "INSERT OR IGNORE INTO ignores(uuid, ignored) VALUES(?, ?)")) {
+            ps.setString(1, who.toString());
+            ps.setString(2, whom.toString());
+            ps.executeUpdate();
+        } catch (Exception e) {
+            plugin.getLogger().warning(String.valueOf(e.getMessage()));
+        }
+    }
+
+    public synchronized boolean removeIgnore(UUID who, UUID whom) {
+        try (PreparedStatement ps = connection.prepareStatement(
+                "DELETE FROM ignores WHERE uuid=? AND ignored=?")) {
+            ps.setString(1, who.toString());
+            ps.setString(2, whom.toString());
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            plugin.getLogger().warning(String.valueOf(e.getMessage()));
+            return false;
+        }
+    }
+
+    public synchronized List<UUID> ignores(UUID who) {
+        List<UUID> list = new ArrayList<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT ignored FROM ignores WHERE uuid=? ORDER BY ignored ASC")) {
+            ps.setString(1, who.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    try {
+                        list.add(UUID.fromString(rs.getString("ignored")));
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning(String.valueOf(e.getMessage()));
+        }
+        return list;
     }
 }

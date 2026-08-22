@@ -61,6 +61,20 @@ commands:
   link:
     description: Link your Minecraft account to dupexv.org.
     usage: /<command>
+  msg:
+    description: Send a private message to a player.
+    aliases: [message, whisper, tell, w, pm]
+    usage: /<command> <player> <message>
+  r:
+    description: Reply to the last private message.
+    aliases: [reply]
+    usage: /<command> <message>
+  ignore:
+    description: Manage your ignore list.
+    usage: /<command> <add|remove|list> [player]
+  unignore:
+    description: Remove a player from your ignore list.
+    usage: /<command> <player>
 
 permissions:
   dupexvcore.tpa:
@@ -114,3 +128,15 @@ permissions:
   dupexvcore.link:
     description: Use /link.
     default: true
+  dupexvcore.msg:
+    description: Use /msg and /r.
+    default: true
+  dupexvcore.ignore:
+    description: Use /ignore and /unignore.
+    default: true
+  dupexvcore.chat.bypass:
+    description: Bypass the chat filter and anti-spam.
+    default: op
+  dupexvcore.commandwhitelist.bypass:
+    description: Bypass the command whitelist.
+    default: op

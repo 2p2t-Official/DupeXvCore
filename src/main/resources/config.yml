@@ -39,3 +39,82 @@ chat-reports:
   enabled: true
   hide-popup: true
   prevent-kicks: true
+
+chat:
+  enabled: true
+  private-messages:
+    enabled: true
+  spam:
+    enabled: true
+    max-messages: 4
+    window-seconds: 4
+    mute-seconds: 30
+    max-repeats: 3
+    caps-percent: 60
+    caps-min-length: 6
+    bypass-permission: dupexvcore.chat.bypass
+  filter:
+    enabled: true
+    block-ips: true
+    block-discord-invites: true
+    block-urls: false
+    blocked-words:
+      - 'yourmom'
+      - 'gay'
+
+command-whitelist:
+  enabled: true
+  bypass-permission: dupexvcore.commandwhitelist.bypass
+  commands:
+    - '/ignore'
+    - '/unignore'
+    - '/ignorelist'
+    - '/toggle'
+    - '/togglechat'
+    - '/togglejoinmessages'
+    - '/togglejoinmessage'
+    - '/toggleprefix'
+    - '/toggleleaderboard'
+    - '/toggleoffset'
+    - '/togglecoordspoof'
+    - '/coordspoof'
+    - '/chat'
+    - '/c'
+    - '/msg'
+    - '/message'
+    - '/whisper'
+    - '/tell'
+    - '/w'
+    - '/reply'
+    - '/r'
+    - '/home'
+    - '/homes'
+    - '/sethome'
+    - '/delhome'
+    - '/back'
+    - '/help'
+    - '/kill'
+    - '/stats'
+    - '/stats-world'
+    - '/tpa'
+    - '/tpahere'
+    - '/tpa-here'
+    - '/tpayes'
+    - '/tpa-accept'
+    - '/tpano'
+    - '/tpa-deny'
+    - '/tpacancel'
+    - '/tpa-cancel'
+    - '/discord'
+    - '/dupes'
+    - '/website'
+    - '/endportals'
+    - '/portals'
+    - '/end-portals'
+    - '/group'
+    - '/g'
+    - '/gc'
+    - '/joindate'
+    - '/lastseen'
+    - '/spawn'
+    - '/link'

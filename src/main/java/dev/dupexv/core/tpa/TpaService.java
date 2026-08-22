@@ -303,7 +303,7 @@ public final class TpaService {
             tell(mover, "tpa.offline");
             return;
         }
-        dest.getScheduler().run(plugin, task -> {
+        mover.getScheduler().run(plugin, task -> {
             if (!dest.isOnline() || !mover.isOnline()) {
                 if (mover.isOnline()) {
                     tell(mover, "tpa.offline");

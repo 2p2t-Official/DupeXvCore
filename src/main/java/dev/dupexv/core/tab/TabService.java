@@ -10,32 +10,22 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class TabService implements Listener {
 
     private static final MiniMessage MINI = MiniMessage.miniMessage();
 
     private final DupeXvCore plugin;
-    // Target uuid -> team id currently in use for that target on every viewer's board.
-    private final ConcurrentHashMap<UUID, String> teamIds = new ConcurrentHashMap<>();
 
     private volatile boolean enabled = true;
-    private volatile boolean nametags = true;
-    private volatile boolean collision = true;
     private volatile String tpsText = "20.00";
     private volatile String onlineText = "0";
     private volatile String maxText = "0";
     private volatile String msptText = "0.00";
     private ScheduledTask task;
-    private int pulseCount;
 
     public TabService(DupeXvCore plugin) {
         this.plugin = plugin;
@@ -44,8 +34,6 @@ public final class TabService implements Listener {
     public void reload() {
         shutdown();
         enabled = plugin.getConfig().getBoolean("tab.enabled", true);
-        nametags = plugin.getConfig().getBoolean("tab.nametags", true);
-        collision = plugin.getConfig().getBoolean("tab.collision", true);
         if (!enabled) {
             return;
         }
@@ -61,7 +49,6 @@ public final class TabService implements Listener {
                 }
             }, null);
         }
-        syncTeamsForAll();
     }
 
     public void shutdown() {
@@ -70,7 +57,6 @@ public final class TabService implements Listener {
             task.cancel();
             task = null;
         }
-        teamIds.clear();
         for (Player player : List.copyOf(Bukkit.getOnlinePlayers())) {
             try {
                 player.getScheduler().run(plugin, scheduled -> clear(player), null);
@@ -90,13 +76,6 @@ public final class TabService implements Listener {
                 apply(player);
             }
         }, null, 1L);
-        // New player needs every existing team; everyone else needs this player's team.
-        syncTeamsForAll();
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        removeTargetFromAll(event.getPlayer());
     }
 
     @EventHandler
@@ -129,53 +108,6 @@ public final class TabService implements Listener {
                 }
             }, null);
         }
-        // Refresh name tag teams every so often so prefix changes from LuckPerms show up.
-        if (++pulseCount % 5 == 0) {
-            syncTeamsForAll();
-        }
-    }
-
-    private void syncTeamsForAll() {
-        if (!enabled) {
-            return;
-        }
-        for (Player viewer : List.copyOf(Bukkit.getOnlinePlayers())) {
-            if (!viewer.isOnline()) {
-                continue;
-            }
-            viewer.getScheduler().run(plugin, scheduled -> {
-                if (!viewer.isOnline()) {
-                    return;
-                }
-                for (Player target : List.copyOf(Bukkit.getOnlinePlayers())) {
-                    if (target.isOnline()) {
-                        syncTeam(viewer, target);
-                    }
-                }
-            }, null);
-        }
-    }
-
-    private void removeTargetFromAll(Player target) {
-        String id = teamIds.remove(target.getUniqueId());
-        if (id == null) {
-            return;
-        }
-        for (Player viewer : List.copyOf(Bukkit.getOnlinePlayers())) {
-            if (viewer.getUniqueId().equals(target.getUniqueId()) || !viewer.isOnline()) {
-                continue;
-            }
-            viewer.getScheduler().run(plugin, scheduled -> {
-                if (!viewer.isOnline()) {
-                    return;
-                }
-                Scoreboard board = viewer.getScoreboard();
-                Team team = board.getTeam(id);
-                if (team != null) {
-                    team.unregister();
-                }
-            }, null);
-        }
     }
 
     private void apply(Player player) {
@@ -188,7 +120,7 @@ public final class TabService implements Listener {
             nameFormat = "%prefix%%player%%suffix%";
         }
         player.playerListName(parse(replace(nameFormat, player)));
-        player.setPlayerListOrder(1000 - rank(player));
+        player.setPlayerListOrder(order(player));
     }
 
     private void clear(Player player) {
@@ -198,51 +130,6 @@ public final class TabService implements Listener {
         player.sendPlayerListHeaderAndFooter(Component.empty(), Component.empty());
         player.playerListName(null);
         player.setPlayerListOrder(0);
-    }
-
-    private void syncTeam(Player viewer, Player target) {
-        if (!viewer.isOnline() || !target.isOnline()) {
-            return;
-        }
-        Scoreboard board = viewer.getScoreboard();
-        int rank = rank(target);
-        String id = teamName(target.getUniqueId(), rank);
-        String previous = teamIds.get(target.getUniqueId());
-        if (previous != null && !previous.equals(id)) {
-            Team old = board.getTeam(previous);
-            if (old != null) {
-                old.unregister();
-            }
-        }
-        Team team = board.getTeam(id);
-        if (team == null) {
-            team = board.registerNewTeam(id);
-        }
-        team.setCanSeeFriendlyInvisibles(false);
-        team.setOption(Team.Option.COLLISION_RULE, collision ? Team.OptionStatus.ALWAYS : Team.OptionStatus.NEVER);
-        team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
-        if (nametags) {
-            String prefix = plugin.lang().raw("tab.nametag-prefix");
-            String suffix = plugin.lang().raw("tab.nametag-suffix");
-            if (prefix == null || prefix.equals("tab.nametag-prefix")) {
-                prefix = "%prefix%";
-            }
-            if (suffix == null || suffix.equals("tab.nametag-suffix")) {
-                suffix = "%suffix%";
-            }
-            team.prefix(parse(replace(prefix, target)));
-            team.suffix(parse(replace(suffix, target)));
-        } else {
-            team.prefix(Component.empty());
-            team.suffix(Component.empty());
-        }
-        if (!team.hasEntry(target.getName())) {
-            for (String other : List.copyOf(team.getEntries())) {
-                team.removeEntry(other);
-            }
-            team.addEntry(target.getName());
-        }
-        teamIds.put(target.getUniqueId(), id);
     }
 
     private Component join(String path, Player player) {
@@ -297,6 +184,19 @@ public final class TabService implements Listener {
         return sort.isEmpty() ? 0 : sort.size();
     }
 
+    private int order(Player player) {
+        if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
+            try {
+                int weight = LuckBridge.weight(player);
+                if (weight != Integer.MIN_VALUE) {
+                    return 1000 + weight;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return 1000 - rank(player);
+    }
+
     private String group(Player player) {
         if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
             return "default";
@@ -317,11 +217,6 @@ public final class TabService implements Listener {
         } catch (Exception ignored) {
             return "";
         }
-    }
-
-    private static String teamName(UUID uuid, int rank) {
-        String hex = uuid.toString().replace("-", "");
-        return String.format(Locale.US, "%02d%s", Math.min(99, Math.max(0, rank)), hex.substring(0, 14));
     }
 
     private static Component parse(String text) {

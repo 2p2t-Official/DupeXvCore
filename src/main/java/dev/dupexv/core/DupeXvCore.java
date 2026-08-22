@@ -1,5 +1,8 @@
 package dev.dupexv.core;
 
+import dev.dupexv.core.chat.ChatCommands;
+import dev.dupexv.core.chat.ChatReportsService;
+import dev.dupexv.core.chat.ChatService;
 import dev.dupexv.core.delay.Delays;
 import dev.dupexv.core.home.HomeCommands;
 import dev.dupexv.core.home.HomeListener;
@@ -12,7 +15,6 @@ import dev.dupexv.core.store.Database;
 import dev.dupexv.core.tab.TabService;
 import dev.dupexv.core.tpa.TpaCommands;
 import dev.dupexv.core.tpa.TpaService;
-import dev.dupexv.core.chat.ChatReportsService;
 import dev.dupexv.core.regiondebug.RegionDebugPublisher;
 import dev.dupexv.core.website.LinkCommand;
 import dev.dupexv.core.website.WebsiteLinkService;
@@ -36,6 +38,8 @@ public final class DupeXvCore extends JavaPlugin {
     public static final String INVCLEAR_PERMISSION = "dupexvcore.invclear";
     public static final String ENDERCLEAR_PERMISSION = "dupexvcore.enderclear";
     public static final String LINK_PERMISSION = "dupexvcore.link";
+    public static final String MSG_PERMISSION = "dupexvcore.msg";
+    public static final String IGNORE_PERMISSION = "dupexvcore.ignore";
 
     private Lang lang;
     private Delays delays;
@@ -48,6 +52,7 @@ public final class DupeXvCore extends JavaPlugin {
     private WebsiteLinkService websiteLink;
     private RegionDebugPublisher regions;
     private ChatReportsService chatReports;
+    private ChatService chat;
 
     @Override
     public void onEnable() {
@@ -112,6 +117,18 @@ public final class DupeXvCore extends JavaPlugin {
         chatReports = new ChatReportsService(this);
         getServer().getPluginManager().registerEvents(chatReports, this);
         chatReports.start();
+        chat = new ChatService(this);
+        chat.reload();
+        getServer().getPluginManager().registerEvents(chat, this);
+        ChatCommands chatCommands = new ChatCommands(this, chat);
+        String[] chatNames = {"msg", "r", "ignore", "unignore"};
+        for (String name : chatNames) {
+            PluginCommand command = getCommand(name);
+            if (command != null) {
+                command.setExecutor(chatCommands);
+                command.setTabCompleter(chatCommands);
+            }
+        }
     }
 
     @Override
@@ -133,6 +150,9 @@ public final class DupeXvCore extends JavaPlugin {
         }
         if (chatReports != null) {
             chatReports.shutdown();
+        }
+        if (chat != null) {
+            chat.shutdown();
         }
         if (database != null) {
             database.close();
@@ -165,6 +185,10 @@ public final class DupeXvCore extends JavaPlugin {
 
     public TabService tab() {
         return tab;
+    }
+
+    public ChatService chat() {
+        return chat;
     }
 
     private void fillConfig() {
