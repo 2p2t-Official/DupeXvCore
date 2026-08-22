@@ -1,6 +1,7 @@
 package dev.dupexv.core;
 
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
@@ -10,6 +11,7 @@ import java.util.List;
 
 public final class NcpBridge {
 
+    private static final String METADATA_KEY = "nocheat.exempt";
     private static final String[] CHECK_NAMES = {
             "MOVING",
             "MOVING_SURVIVALFLY",
@@ -18,6 +20,7 @@ public final class NcpBridge {
             "NET_MOVING"
     };
 
+    private static DupeXvCore plugin;
     private static Object checks;
     private static Method exempt;
     private static Method unexempt;
@@ -25,7 +28,8 @@ public final class NcpBridge {
     private NcpBridge() {
     }
 
-    static {
+    public static void init(DupeXvCore core) {
+        plugin = core;
         try {
             Class<?> api = Class.forName("fr.neatmonster.nocheatplus.checks.NoCheatPlusAPI");
             Class<?> type = Class.forName("fr.neatmonster.nocheatplus.checks.CheckType");
@@ -54,15 +58,27 @@ public final class NcpBridge {
     }
 
     public static void exempt(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (plugin != null) {
+            player.setMetadata(METADATA_KEY, new FixedMetadataValue(plugin, true));
+        }
         invoke(exempt, player);
     }
 
     public static void unexempt(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (plugin != null) {
+            player.removeMetadata(METADATA_KEY, plugin);
+        }
         invoke(unexempt, player);
     }
 
     private static void invoke(Method method, Player player) {
-        if (method == null || player == null || !player.isOnline()) {
+        if (method == null || checks == null) {
             return;
         }
         try {

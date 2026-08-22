@@ -57,6 +57,7 @@ public final class DupeXvCore extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        NcpBridge.init(this);
         saveDefaultConfig();
         fillConfig();
         lang = new Lang(this);

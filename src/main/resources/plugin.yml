@@ -3,7 +3,7 @@ main: dev.dupexv.core.DupeXvCore
 version: ${project.version}
 api-version: ${plugin.api.version}
 folia-supported: true
-softdepend: [LuckPerms, packetevents]
+softdepend: [LuckPerms, packetevents, NoCheatPlus]
 authors: [DupeXv]
 website: https://dupexv.org
 description: Core plugin for DupeXv.
