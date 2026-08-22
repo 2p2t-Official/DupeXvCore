@@ -169,3 +169,7 @@ chat:
 
 command-whitelist:
   not-allowed: "&cYou can't use {command}."
+
+core:
+  usage: "&c/dupexvcore reload"
+  reloaded: "&aConfig and language files reloaded."

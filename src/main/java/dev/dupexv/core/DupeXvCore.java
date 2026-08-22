@@ -40,6 +40,7 @@ public final class DupeXvCore extends JavaPlugin {
     public static final String LINK_PERMISSION = "dupexvcore.link";
     public static final String MSG_PERMISSION = "dupexvcore.msg";
     public static final String IGNORE_PERMISSION = "dupexvcore.ignore";
+    public static final String ADMIN_PERMISSION = "dupexvcore.admin";
 
     private Lang lang;
     private Delays delays;
@@ -129,6 +130,12 @@ public final class DupeXvCore extends JavaPlugin {
                 command.setTabCompleter(chatCommands);
             }
         }
+        PluginCommand coreCommand = getCommand("dupexvcore");
+        if (coreCommand != null) {
+            CoreCommands coreCommands = new CoreCommands(this);
+            coreCommand.setExecutor(coreCommands);
+            coreCommand.setTabCompleter(coreCommands);
+        }
     }
 
     @Override
@@ -189,6 +196,38 @@ public final class DupeXvCore extends JavaPlugin {
 
     public ChatService chat() {
         return chat;
+    }
+
+    public void reloadAll() {
+        reloadConfig();
+        fillConfig();
+        if (lang != null) {
+            lang.reload();
+        }
+        if (tpa != null) {
+            tpa.reload();
+        }
+        if (spawn != null) {
+            spawn.reload();
+        }
+        if (homes != null) {
+            homes.reload();
+        }
+        if (tab != null) {
+            tab.reload();
+        }
+        if (chatReports != null) {
+            chatReports.reload();
+        }
+        if (chat != null) {
+            chat.reload();
+        }
+        if (websiteLink != null) {
+            websiteLink.reload();
+        }
+        if (regions != null) {
+            regions.reloadSettings();
+        }
     }
 
     private void fillConfig() {

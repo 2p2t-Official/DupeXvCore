@@ -75,6 +75,10 @@ commands:
   unignore:
     description: Remove a player from your ignore list.
     usage: /<command> <player>
+  dupexvcore:
+    description: Reload the plugin configuration and language files.
+    aliases: [xv]
+    usage: /<command> <reload>
 
 permissions:
   dupexvcore.tpa:
@@ -139,4 +143,7 @@ permissions:
     default: op
   dupexvcore.commandwhitelist.bypass:
     description: Bypass the command whitelist.
+    default: op
+  dupexvcore.admin:
+    description: Reload the plugin.
     default: op
