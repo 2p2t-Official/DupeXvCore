@@ -1,6 +1,7 @@
 package dev.dupexv.core.spawn;
 
 import dev.dupexv.core.DupeXvCore;
+import dev.dupexv.core.NcpBridge;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.HeightMap;
@@ -147,6 +148,7 @@ public final class SpawnService {
                 return;
             }
             pending.remove(player.getUniqueId());
+            NcpBridge.exempt(player);
             player.teleportAsync(found, PlayerTeleportEvent.TeleportCause.COMMAND).thenAccept(ok -> {
                 if (Boolean.TRUE.equals(ok)) {
                     if (cooldown > 0) {
@@ -155,6 +157,7 @@ public final class SpawnService {
                 } else {
                     plugin.lang().tell(player, "spawn.failed");
                 }
+                player.getScheduler().runDelayed(plugin, scheduled -> NcpBridge.unexempt(player), null, 40L);
             });
         });
     }

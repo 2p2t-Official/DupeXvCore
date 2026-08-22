@@ -1,6 +1,7 @@
 package dev.dupexv.core.tpa;
 
 import dev.dupexv.core.DupeXvCore;
+import dev.dupexv.core.NcpBridge;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -311,6 +312,7 @@ public final class TpaService {
                 return;
             }
             Location to = dest.getLocation().clone();
+            NcpBridge.exempt(mover);
             mover.teleportAsync(to, PlayerTeleportEvent.TeleportCause.COMMAND).thenAccept(ok -> {
                 if (Boolean.TRUE.equals(ok)) {
                     markCooldown(warmup.requester, warmup.cooldownSeconds);
@@ -318,6 +320,7 @@ public final class TpaService {
                 } else {
                     tell(mover, "tpa.failed");
                 }
+                mover.getScheduler().runDelayed(plugin, scheduled -> NcpBridge.unexempt(mover), null, 40L);
             });
         }, null);
     }

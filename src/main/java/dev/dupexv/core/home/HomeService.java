@@ -1,6 +1,7 @@
 package dev.dupexv.core.home;
 
 import dev.dupexv.core.DupeXvCore;
+import dev.dupexv.core.NcpBridge;
 import dev.dupexv.core.store.HomeRecord;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
@@ -322,6 +323,7 @@ public final class HomeService {
             plugin.lang().actionBar(player, "home.world");
             return;
         }
+        NcpBridge.exempt(player);
         player.teleportAsync(dest, PlayerTeleportEvent.TeleportCause.COMMAND).thenAccept(ok -> {
             if (Boolean.TRUE.equals(ok)) {
                 if (cooldown > 0) {
@@ -334,6 +336,7 @@ public final class HomeService {
             } else {
                 plugin.lang().actionBar(player, "home.failed");
             }
+            player.getScheduler().runDelayed(plugin, task -> NcpBridge.unexempt(player), null, 40L);
         });
     }
 
